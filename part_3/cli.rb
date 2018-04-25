@@ -30,10 +30,10 @@ class CLI
   def print_blockchain
     blockchain.each do |block|
       puts <<~BLOCK
-        Prev hash: #{block[:prev_hash]}
-        Data: #{block[:data]}
-        Nonce: #{block[:nonce]}
-        Hash: #{block[:hash]}
+        Prev hash: #{block.prev_hash}
+        Data: #{block.data}
+        Nonce: #{block.nonce}
+        Hash: #{block.hash}
 
       BLOCK
     end

@@ -21,38 +21,10 @@ class Block
     @prev_hash = prev_hash
   end
 
-  # Return block from hash
-  # @param block_h [Hash] the hash to deserialize
-  # @return [Block]
-  # def from_h(block_h)
-  #   self.new()
-  # end
-
   # Return block's difficulty
   # @return [Integer] difficulty
   def target_bits
     TARGET_BITS
-  end
-
-  # Serialize block
-  # @return [Hash] the hash which represents the block
-  def to_h
-    {
-      prev_hash: prev_hash,
-      hash: hash,
-      data: data,
-      nonce: nonce,
-      timestamp: timestamp
-    }
-  end
-
-  # Assign attributes to the block
-  # @return [void]
-  def assign_attributes(**attributes)
-    valid_attributes = [:data, :prev_hash, :timestamp, :hash, :nonce]
-    attributes.each do |attribute, value|
-      valid_attributes.include?(attribute) && send(:"#{attribute}=", value)
-    end
   end
 
 private

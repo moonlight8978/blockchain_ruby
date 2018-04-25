@@ -78,7 +78,7 @@ private
   def save_block(block)
     db.transaction do
       db[:l] = block.hash
-      db[block.hash] = block.to_h
+      db[block.hash] = block
       db.commit
     end
     block
