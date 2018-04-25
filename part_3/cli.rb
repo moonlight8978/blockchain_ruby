@@ -28,11 +28,7 @@ class CLI
   # Print the blockchain
   # @return [void]
   def print_blockchain
-    iterator = BlockIterator.new(blockchain)
-
-    while (iterator.current_hash != Block::GENESIS_PREV_HASH) do
-      block = iterator.next
-
+    blockchain.each do |block|
       puts <<~BLOCK
         Prev hash: #{block[:prev_hash]}
         Data: #{block[:data]}

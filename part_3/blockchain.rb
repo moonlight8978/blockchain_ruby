@@ -51,6 +51,18 @@ class Blockchain
     end
   end
 
+  # Iterate over the blockchain
+  # @yield [block] block in the blockchain
+  # @return [void]
+  def each(&_block)
+    iterator = BlockIterator.new(self)
+
+    until iterator.current_hash == Block::GENESIS_PREV_HASH
+      block = iterator.next
+      yield(block)
+    end
+  end
+
 private
 
   attr_writer :db, :hash
