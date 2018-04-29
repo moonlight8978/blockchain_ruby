@@ -1,9 +1,12 @@
 class CLI
   # Excute command on the CLI
-  # @param command [String]        'createblockchain', 'transfer', 'print', or 'getbalance'
+  # @param command [String]        'createwallet', 'createblockchain', 'transfer',
+  #   'print', or 'getbalance'
   # @param data    [Array<String>] data to pass to command
   def run(command, data)
     case command
+    when 'createwallet'
+      create_wallet
     when 'createblockchain'
       puts "asddas"
       Blockchain.new(data[0])
@@ -14,6 +17,13 @@ class CLI
     when 'getbalance'
       get_balance(data[0])
     end
+  end
+
+  def create_wallet
+    repo = WalletRepository.new
+    wallet = Wallet.new
+    repo.save(wallet)
+    puts "New wallet has been created - #{wallet.address}"
   end
 
   # Return the blockchain

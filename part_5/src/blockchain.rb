@@ -38,6 +38,15 @@ class Blockchain
   # @return [void] if POW succeed, the block will be saved to the db,
   #   otherwise the block will be skipped
   def append_block(block)
+    valid = block.transactions.all? do |tx|
+      tx.coinbase? || verify_transaction?(tx)
+    end
+
+    unless valid
+      puts "Verify block failed!"
+      return
+    end
+
     pow = ProofOfWork.new(block)
     catch :not_found do
       result = pow.run!
@@ -64,13 +73,13 @@ class Blockchain
   end
 
   # Get all unspent outputs of a specific address
-  # @param address [String] wallet address
+  # @param public_key_hash [String] wallet address
   # @return [Array<TXOutput>]
-  def unspent_transaction_outputs_of(address)
+  def unspent_transaction_outputs_of(public_key_hash)
     unspent_outputs = []
-    unspent_transactions_of(address).each do |tx|
+    unspent_transactions_of(public_key_hash).each do |tx|
       tx.v_out.each do |out|
-        unspent_outputs.push(out) if out.can_be_unlocked_with?(address)
+        unspent_outputs.push(out) if out.locked_with?(public_key_hash)
       end
     end
     unspent_outputs
@@ -79,7 +88,7 @@ class Blockchain
   # Get all transactions containing unspent outputs
   # @param (see #unspent_transaction_outputs_of)
   # @return [Array<Transaction>]
-  def unspent_transactions_of(address)
+  def unspent_transactions_of(public_key_hash)
     unspent_txs = []
     spent_tx_outputs = {}
 
@@ -94,7 +103,7 @@ class Blockchain
               end
             end
 
-            if out.can_be_unlocked_with?(address)
+            if out.locked_with?(public_key_hash)
               unspent_txs << tx
             end
           end
@@ -102,7 +111,7 @@ class Blockchain
 
         unless tx.coinbase?
           tx.v_in.each do |input|
-            if input.can_unlock_output_with?(address)
+            if input.uses_key?(public_key_hash)
               in_tx_id = input.tx_id.to_s
 
               spent_tx_outputs[in_tx_id] ||= []
@@ -119,11 +128,11 @@ class Blockchain
   # Get all transaction outputs available, group by transaction id
   # @param (see #unspent_transaction_outputs_of)
   # @return [Hash{String, nil => Array<TXOutput>}]
-  def spendable_outputs_of(address)
+  def spendable_outputs_of(public_key_hash)
     result = {}
-    unspent_txs = unspent_transactions_of(address)
+    unspent_txs = unspent_transactions_of(public_key_hash)
     unspent_txs.each do |tx|
-      result[tx.id] = tx.v_out.select { |tx_out| tx_out.can_be_unlocked_with?(address) }
+      result[tx.id] = tx.v_out.select { |tx_out| tx_out.locked_with?(public_key_hash) }
     end
     result
   end
@@ -132,7 +141,9 @@ class Blockchain
   # @param (see #unspent_transaction_outputs_of)
   # @return [Integer] balance in Satoshi
   def balance_of(address)
-    unspent_txs = unspent_transaction_outputs_of(address)
+    payload = Base58.decode(address).to_s(16)
+    public_key_hash = payload.slice(0, payload.length - 4)
+    unspent_txs = unspent_transaction_outputs_of(public_key_hash)
     unspent_txs.reduce(0) { |sum, tx_out| sum + tx_out.value }
   end
 
@@ -142,6 +153,9 @@ class Blockchain
   # @param amount [Float]  amount to transfer, at least 0.00000001 BTC
   # @return [Transaction, nil] return nil if amount is invalid or balance is not enough
   def new_utxo(from, to, amount)
+    wallet_repo = WalletRepository.new
+    wallet = wallet_repo.find(from)
+
     amount_in_satoshi = (amount / Transaction::SATOSHI).to_i
 
     total = balance_of(from)
@@ -150,9 +164,9 @@ class Blockchain
       return nil
     end
 
-    v_in = spendable_outputs_of(from).map do |tx_id, tx_outs|
+    v_in = spendable_outputs_of(wallet.public_key_hash).map do |tx_id, tx_outs|
       tx_outs.map.with_index do |tx_out, tx_out_idx|
-        TXInput.new(tx_id: tx_id, v_out: tx_out_idx, script_sig: from)
+        TXInput.new(tx_id: tx_id, v_out: tx_out_idx, public_key: wallet.public_key)
       end
     end.flatten
 
@@ -163,7 +177,41 @@ class Blockchain
 
     Transaction.new(v_in: v_in, v_out: v_out).tap do |tx|
       tx.set_id
+      sign_transaction(tx, wallet)
     end
+  end
+
+  def find_transaction(id)
+    each do |block|
+      block.transactions.each do |tx|
+        return tx if (tx.id == id)
+      end
+    end
+    nil
+  end
+
+  def sign_transaction(tx, wallet)
+    prev_txs = {}
+
+    tx.v_in.each do |tx_input|
+      prev_tx = find_transaction(tx_input.tx_id)
+      prev_txs[prev_tx.id] = prev_tx
+    end
+
+    tx.sign(wallet, prev_txs)
+  end
+
+  def verify_transaction?(tx)
+    return true if tx.coinbase?
+
+    prev_txs = {}
+
+    tx.v_in.each do |tx_input|
+      prev_tx = find_transaction(tx_input.tx_id)
+      prev_txs[prev_tx.id] = prev_tx
+    end
+
+    tx.verify?(prev_txs)
   end
 
 private

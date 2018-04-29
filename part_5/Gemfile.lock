@@ -1,0 +1,13 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    base58 (0.2.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  base58
+
+BUNDLED WITH
+   1.16.1
