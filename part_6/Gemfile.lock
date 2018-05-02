@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    base58 (0.2.2)
+    byebug (10.0.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  base58
+  byebug
+
+BUNDLED WITH
+   1.16.1
