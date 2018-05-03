@@ -12,12 +12,9 @@ class BlockIterator
   # Return the next block, first call on this method will result in first block
   # @return [Block] next block or first block
   def next
-    block = db.transaction do
-      db.fetch(current_hash, nil)
-    end
-    block.tap do
-      self.current_hash = block.prev_hash
-    end
+    block = db.transaction { db.fetch(current_hash, nil) }
+    self.current_hash = block.prev_hash
+    block
   end
 
 private

@@ -16,7 +16,7 @@ class TXInput
     self.public_key = attributes[:public_key]
   end
 
-  # Check whether the input has used the input key
+  # Check whether the input has used the input key to sign
   # @param public_key_hash [String] hashed public key
   # @return [Boolean]
   def uses_key?(public_key_hash)
@@ -26,7 +26,7 @@ class TXInput
 
   # Check if input is in a coinbase transaction
   # @return [Boolean]
-  def coinbase?
+  def in_coinbase?
     v_out == -1 && tx_id.nil?
   end
 end

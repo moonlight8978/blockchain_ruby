@@ -16,6 +16,7 @@ class Blockchain
       self.hash = hash
     else
       coinbase_tx = Transaction.new_coinbase(address)
+      coinbase_tx.set_id
       genesis = build_genesis_block(coinbase_tx)
       append_block(genesis)
     end
@@ -181,15 +182,19 @@ class Blockchain
     end
   end
 
+  # Find transaction by id
+  # @param id [String] transaction's id
+  # @return [Transaction, nil]
   def find_transaction(id)
     each do |block|
-      block.transactions.each do |tx|
-        return tx if (tx.id == id)
-      end
+      tx = block.transactions.detect { |tx| tx.id == id }
+      return tx unless tx.nil?
     end
     nil
   end
 
+  # Sign transaction
+  # @return [void]
   def sign_transaction(tx, wallet)
     prev_txs = {}
 
@@ -201,6 +206,8 @@ class Blockchain
     tx.sign(wallet, prev_txs)
   end
 
+  # Verify transaction
+  # @return [Boolean]
   def verify_transaction?(tx)
     return true if tx.coinbase?
 

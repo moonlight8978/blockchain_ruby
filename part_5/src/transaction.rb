@@ -41,9 +41,13 @@ class Transaction
   # Check if transaction is coinbase transaction
   # @return [Boolean]
   def coinbase?
-    v_in.length == 1 && v_in[0].coinbase?
+    v_in.length == 1 && v_in[0].in_coinbase?
   end
 
+  # Sign the transaction's inputs using trimmed copy version
+  # @param wallet [Wallet]
+  # @param prev_txs [Array<Transaction>]
+  # @return [void]
   def sign(wallet, prev_txs)
     return if coinbase?
 
@@ -54,11 +58,15 @@ class Transaction
       tx_copy.v_in[i_idx].public_key = prev_tx.v_out[tx_input.v_out].public_key_hash
       tx_copy.set_id
       tx_copy.v_in[i_idx].public_key = nil
+
       signature = wallet.sign(tx_copy.id)
       self.v_in[i_idx].signature = signature
     end
   end
 
+  # Get the trimmed copy of the transaction, trimmed transaction's inputs do not
+  #   have signature and public key
+  # @return [Transaction]
   def trimmed_copy
     inputs = v_in.map do |tx_input|
       TXInput.new(tx_id: tx_input.tx_id, v_out: tx_input.v_out)
@@ -71,11 +79,11 @@ class Transaction
     Transaction.new(id: id, v_out: outputs, v_in: inputs)
   end
 
+  # Verify the transaction
+  # @param prev_txs [Array<Transaction>]
+  # @return [Boolean]
   def verify?(prev_txs)
     tx_copy = trimmed_copy
-
-    group = OpenSSL::PKey::EC::Group.new('prime256v1')
-    key = OpenSSL::PKey::EC.new(group)
 
     v_in.each.with_index do |tx_input, i_idx|
       prev_tx = prev_txs[tx_input.tx_id]
@@ -84,18 +92,8 @@ class Transaction
       tx_copy.set_id
       tx_copy.v_in[i_idx].public_key = nil
 
-      public_bn = OpenSSL::BN.new(tx_input.public_key, 16)
-      public_key = OpenSSL::PKey::EC::Point.new(group, public_bn)
-      key.public_key = public_key
-
-      valid =
-        begin
-          key.dsa_verify_asn1(tx_copy.id, tx_input.signature || "")
-        rescue OpenSSL::PKey::ECError
-          false
-        end
-
-      return false unless valid
+      tx_input_valid = ECDSA.verify(tx_input.signature, tx_input.public_key, tx_copy.id)
+      return false unless tx_input_valid
     end
 
     true

@@ -19,6 +19,8 @@ class CLI
     end
   end
 
+  # Create new wallet
+  # @return [void]
   def create_wallet
     repo = WalletRepository.new
     wallet = Wallet.new
