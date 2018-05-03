@@ -3,6 +3,7 @@ require 'date'
 require 'digest'
 require 'forwardable'
 require 'openssl'
+require 'securerandom'
 
 require 'base58'
 

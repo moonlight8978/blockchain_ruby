@@ -73,7 +73,7 @@ class Blockchain
     end
   end
 
-  # Get all unspent transaction outputs
+  # Get all unspent transaction outputs grouped by transaction's id
   # @return [Hash{String => Array<TXOutput>}]
   def unspent_transaction_outputs
     unspent_tx_outputs = {}
@@ -83,7 +83,7 @@ class Blockchain
       block.transactions.each do |tx|
         tx_id = tx.id
         catch :spent do
-          tx.v_out.each.with_index do |out, out_idx|
+          tx.v_out.each.with_index do |tx_output, out_idx|
             if spent_tx_outputs[tx_id]
               spent_tx_outputs[tx_id].each do |spent_out_idx|
                 throw :spent if spent_out_idx == out_idx
@@ -91,7 +91,7 @@ class Blockchain
             end
 
             unspent_tx_outputs[tx_id] ||= []
-            unspent_tx_outputs[tx_id] << out
+            unspent_tx_outputs[tx_id] << tx_output
           end
         end
 
@@ -146,15 +146,19 @@ class Blockchain
     end
   end
 
+  # Find transaction by id
+  # @param id [String] transaction's id
+  # @return [Transaction, nil]
   def find_transaction(id)
     each do |block|
-      block.transactions.each do |tx|
-        return tx if (tx.id == id)
-      end
+      tx = block.transactions.detect { |tx| tx.id == id }
+      return tx unless tx.nil?
     end
     nil
   end
 
+  # Sign transaction
+  # @return [void]
   def sign_transaction(tx, wallet)
     prev_txs = {}
 
@@ -166,6 +170,8 @@ class Blockchain
     tx.sign(wallet, prev_txs)
   end
 
+  # Verify transaction
+  # @return [Boolean]
   def verify_transaction?(tx)
     return true if tx.coinbase?
 

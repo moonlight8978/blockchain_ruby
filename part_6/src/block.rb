@@ -30,10 +30,8 @@ class Block
   # Get unique hash of transactions
   # @return [String] 256-bit hash
   def hash_transactions
-    tx_ids = transactions.map do |tx|
-      tx.id
-    end
-    Digest::SHA256.hexdigest(tx_ids.join(''))
+    tx_ids = transactions.map(&:id).join('')
+    Crypto.sha256(tx_ids)
   end
 
 private

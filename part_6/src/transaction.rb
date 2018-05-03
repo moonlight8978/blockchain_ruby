@@ -24,7 +24,7 @@ class Transaction
   # @param to [String] user wallet address
   # @return [Transaction]
   def self.new_coinbase(to)
-    data = "Reward to #{to}"
+    data = "Reward to #{to} - #{SecureRandom.hex}"
     v_in = TXInput.new(v_out: -1, signature: data)
     v_out = TXOutput.new(SUBSIDY, to)
 
@@ -41,9 +41,13 @@ class Transaction
   # Check if transaction is coinbase transaction
   # @return [Boolean]
   def coinbase?
-    v_in.length == 1 && v_in[0].coinbase?
+    v_in.length == 1 && v_in[0].in_coinbase?
   end
 
+  # Sign the transaction's inputs using trimmed copy version
+  # @param wallet [Wallet]
+  # @param prev_txs [Hash{String => Transaction}]
+  # @return [void]
   def sign(wallet, prev_txs)
     return if coinbase?
 
@@ -59,6 +63,9 @@ class Transaction
     end
   end
 
+  # Get the trimmed copy of the transaction, trimmed transaction's inputs do not
+  #   have signature and public key
+  # @return [Transaction]
   def trimmed_copy
     inputs = v_in.map do |tx_input|
       TXInput.new(tx_id: tx_input.tx_id, v_out: tx_input.v_out)
@@ -71,6 +78,9 @@ class Transaction
     Transaction.new(id: id, v_out: outputs, v_in: inputs)
   end
 
+  # Verify the transaction
+  # @param prev_txs [Hash{String => Transaction}]
+  # @return [Boolean]
   def verify?(prev_txs)
     tx_copy = trimmed_copy
 

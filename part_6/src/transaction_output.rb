@@ -10,13 +10,16 @@ class TXOutput
     lock(address)
   end
 
+  # Lock the transaction output with receiver's address
+  # @param address [String]
+  # @return [void]
   def lock(address)
     payload = Base58.decode(address).to_s(16)
     public_key_hash = payload.slice(0, payload.length - 4)
     self.public_key_hash = public_key_hash
   end
 
-  # Check whether the output is locked with unlocking data
+  # Check if the output is locked with the input public key
   # @return [Boolean]
   def locked_with?(public_key_hash)
     self.public_key_hash == public_key_hash

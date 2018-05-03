@@ -24,7 +24,7 @@ class Transaction
   # @param to [String] user wallet address
   # @return [Transaction]
   def self.new_coinbase(to)
-    data = "Reward to #{to}"
+    data = "Reward to #{to} - #{SecureRandom.hex}"
     v_in = TXInput.new(v_out: -1, signature: data)
     v_out = TXOutput.new(SUBSIDY, to)
 
@@ -46,7 +46,7 @@ class Transaction
 
   # Sign the transaction's inputs using trimmed copy version
   # @param wallet [Wallet]
-  # @param prev_txs [Array<Transaction>]
+  # @param prev_txs [Hash{String => Transaction}]
   # @return [void]
   def sign(wallet, prev_txs)
     return if coinbase?
@@ -80,7 +80,7 @@ class Transaction
   end
 
   # Verify the transaction
-  # @param prev_txs [Array<Transaction>]
+  # @param prev_txs [Hash{String => Transaction}]
   # @return [Boolean]
   def verify?(prev_txs)
     tx_copy = trimmed_copy

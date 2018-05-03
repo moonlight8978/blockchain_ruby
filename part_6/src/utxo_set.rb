@@ -40,6 +40,10 @@ class UTXOSet
     end.flatten.compact
   end
 
+  # Find spendable outputs
+  # @param public_key_hash [String]
+  # @param amount [Integer] currency in satoshis
+  # @return [Hash{Symbol => Integer, Hash{String => Integer}}]
   def spendable_outputs_of(public_key_hash, amount)
     unspent_outputs = {}
     accumulated = 0
@@ -58,6 +62,9 @@ class UTXOSet
     { accumulated: accumulated, outputs: unspent_outputs }
   end
 
+  # Update the UTXO database after mining a block
+  # @param block [Block]
+  # @return [void]
   def update(block)
     txs = blockchain.db.transaction { |db| db[DB_NAME] }
     block.transactions.each do |tx|
